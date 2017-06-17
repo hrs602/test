@@ -99,7 +99,6 @@ def get_access_token(key):
     headers = {
         'Ocp-Apim-Subscription-Key': key
     };
-
     response = requests.request('POST', 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken', headers=headers)
 
     return response.text
@@ -117,7 +116,7 @@ def translator(text, lang, token):
 
     response = requests.request('GET', 'https://api.microsofttranslator.com/V2/Http.svc/Translate', headers=headers, params=query)
     traslated = re.sub("<.*?>", '', response.text)
-    
+
     return traslated
 
 if __name__ == "__main__":
