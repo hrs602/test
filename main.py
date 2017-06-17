@@ -25,7 +25,6 @@ import json
 
 app = Flask(__name__)
 
-
 # Line Messaging API
 line_bot_api = LineBotApi(config.CHANNEL_ACCESS_TOKEN, http_client=RequestsHttpClient)
 line_bot_api_nc = LineBotApi(config.CHANNEL_ACCESS_TOKEN)
@@ -34,11 +33,11 @@ parser = WebhookParser(config.CHANNEL_SECRET)
 
 # Docomo API
 ENDPOINT_URI = 'https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue?API_KEY='
-DOCOMO_API_KEY = '62353054416e576e4851436c6244733366316b44726f6d66522f7271492e577353717368316d4d634e5537'
+DOCOMO_API_KEY = 'api_key'
 
 # Translate API
 TRANSLATE_API_ENDPOINT = 'https://api.cognitive.microsoft.com/sts/v1.0'
-TRANSLATE_API_KEY = 'f4c2e8baea4744068d4dcb010eb813e2'
+TRANSLATE_API_KEY = 'api_key'
 
 # Vision API
 VISION_API_ENDPOINT = 'https://southeastasia.api.cognitive.microsoft.com/vision/v1.0'
@@ -46,8 +45,7 @@ image_url = ''
 headers = {
     # Request headers
     'Content-Type': 'application/octet-stream',
-    # 'Content-Type': 'application/octet-stream',
-    'Ocp-Apim-Subscription-Key': '61bb79be31ee4405bc6d347a89743dd2',
+    'Ocp-Apim-Subscription-Key': 'subscription_key',
 }
 params = urllib.urlencode({
     # Request parameters
@@ -61,20 +59,12 @@ logging.getLogger().setLevel(logging.DEBUG)
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
-
-    #body = request.get_data(as_text=True)
     body = request.get_data()
-
     logging.debug("Request body: " + body)
     token = get_access_token(TRANSLATE_API_KEY)
     user = {'t': 20}  # 20:kansai character
     docomo_client = doco.client.Client(apikey=DOCOMO_API_KEY, user=user)
     events = parser.parse(body.decode('utf-8'), signature)
-#    if body['type'] == 'text' :
-#        events = parser.parse(body.decode('utf-8'), signature)
-#    else:
-#        events = parser.parse(body, signature)
-
 
     for event in events:
         if event.message.type == 'text':
@@ -88,7 +78,6 @@ def callback():
             )
         elif event.message.type == 'image':
             message_content = line_bot_api.get_message_content(event.message.id)
- #           logging.debug(message_content.content)
             conn = httplib.HTTPSConnection('api.projectoxford.ai')
             conn.request("POST","https://southeastasia.api.cognitive.microsoft.com/vision/v1.0/analyze?%s" % params, message_content.content, headers)
             response = conn.getresponse()
@@ -102,13 +91,10 @@ def callback():
                 event.reply_token,
                 TextSendMessage(text='「' + caption + '」 の写真やね。')
             )
-#            line_bot_api.reply_message(
-#                event.reply_token,
-#                TextSendMessage(text=','.join(res['description']['tags']))
-#            )
+
     return ''
 
-# トークン発行
+# Translate_APIトークン発行
 def get_access_token(key):
     headers = {
         'Ocp-Apim-Subscription-Key': key
@@ -118,7 +104,7 @@ def get_access_token(key):
 
     return response.text
 
-# 翻訳実行
+# 翻訳
 def translator(text, lang, token):
     headers = {
         'Authorization': 'Bearer ' + token
@@ -131,12 +117,8 @@ def translator(text, lang, token):
 
     response = requests.request('GET', 'https://api.microsofttranslator.com/V2/Http.svc/Translate', headers=headers, params=query)
     traslated = re.sub("<.*?>", '', response.text)
+    
     return traslated
-
-
-
-
-
 
 if __name__ == "__main__":
     app.run()
